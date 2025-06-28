@@ -10,7 +10,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
-    "@astrojs/node": "^9.2.2",
+    "@zeabur/astro-adapter": "^1.0.6",
     "astro": "^5.10.1"
   },
   "devDependencies": {
