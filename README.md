@@ -45,3 +45,42 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+## Features
+
+- Upload an image and fill it to Instagram Story size (9:16)
+- Fill the background with an Instagram-like linear gradient
+- Download the result as a 1080x1920px image
+- Uses Astro, TailwindCSS, pnpm
+- Linting: oxlint, commitlint, lint-staged, husky
+
+## Usage
+
+1. Install dependencies:
+
+   ```sh
+   pnpm install
+   ```
+
+2. Start the dev server:
+
+   ```sh
+   pnpm dev
+   ```
+
+3. Open the app in your browser. Upload an image, preview, and download the IG Story-ready image.
+
+## Linting & Git Hooks
+
+- **oxlint**: Fast JS/TS linter, runs on staged files via lint-staged
+- **commitlint**: Enforces conventional commit messages
+- **lint-staged**: Runs oxlint on staged files before commit
+- **husky**: Manages git hooks for pre-commit and commit-msg
+
+### Setup (already configured)
+
+- To re-enable hooks after cloning:
+
+  ```sh
+  pnpm prepare
+  ```
