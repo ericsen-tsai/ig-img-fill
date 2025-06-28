@@ -14,58 +14,90 @@ import "../styles/global.css";
 			<form id="upload-form" class="flex flex-col gap-4 w-full items-center">
 				<input type="file" accept="image/*" id="image-input" class="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100" />
 				<div id="preview-container" class="w-[270px] h-[480px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center overflow-hidden">
-					<img id="preview" class="max-w-full max-h-full object-contain" style="display:none;" />
+					<canvas id="preview-canvas" width="270" height="480" class="rounded-lg"></canvas>
 				</div>
 				<button type="button" id="download-btn" class="mt-4 px-4 py-2 bg-pink-600 text-white rounded-lg font-semibold shadow hover:bg-pink-700" style="display:none;">Download Story Image</button>
 			</form>
 		</main>
 		<script>
+			function drawImageWithGradient(canvas: HTMLCanvasElement, img: HTMLImageElement) {
+				// Draw image to offscreen canvas to sample border
+				const offCanvas = document.createElement('canvas');
+				offCanvas.width = img.width;
+				offCanvas.height = img.height;
+				const offCtx = offCanvas.getContext('2d');
+				if (!offCtx) return;
+				offCtx.drawImage(img, 0, 0);
+				function getAvgColor(pixels: Uint8ClampedArray): [number, number, number] {
+					let r = 0, g = 0, b = 0, count = 0;
+					for (let i = 0; i < pixels.length; i += 4) {
+						r += pixels[i];
+						g += pixels[i+1];
+						b += pixels[i+2];
+						count++;
+					}
+					return [Math.round(r/count), Math.round(g/count), Math.round(b/count)];
+				}
+				const { width, height } = offCanvas;
+				const top = offCtx.getImageData(0, 0, width, 1).data;
+				const bottom = offCtx.getImageData(0, height-1, width, 1).data;
+				const topColor = getAvgColor(top);
+				const bottomColor = getAvgColor(bottom);
+				// Draw gradient background on target canvas
+				const ctx = canvas.getContext('2d');
+				if (!ctx) return;
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+				grad.addColorStop(0, `rgb(${topColor[0]},${topColor[1]},${topColor[2]})`);
+				grad.addColorStop(1, `rgb(${bottomColor[0]},${bottomColor[1]},${bottomColor[2]})`);
+				ctx.fillStyle = grad;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				// Draw image centered and fit
+				const ratio = Math.min(canvas.width/img.width, canvas.height/img.height);
+				const w = img.width * ratio;
+				const h = img.height * ratio;
+				const x = (canvas.width - w) / 2;
+				const y = (canvas.height - h) / 2;
+				ctx.drawImage(img, x, y, w, h);
+			}
 			const input = document.getElementById('image-input') as HTMLInputElement | null;
-			const preview = document.getElementById('preview') as HTMLImageElement | null;
+			const previewCanvas = document.getElementById('preview-canvas') as HTMLCanvasElement | null;
 			const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement | null;
-			if (input && preview && downloadBtn) {
-				input.addEventListener('change', (e) => {
+				input?.addEventListener('change', (e) => {
 					const file = input.files && input.files[0];
 					if (!file) return;
 					const reader = new FileReader();
 					reader.onload = (ev) => {
-						preview.src = ev.target?.result as string;
-						preview.style.display = 'block';
-						downloadBtn.style.display = 'block';
+						const img = new window.Image();
+						img.crossOrigin = 'anonymous';
+						img.onload = () => {
+							if (!previewCanvas || !downloadBtn) return;
+							drawImageWithGradient(previewCanvas, img);
+							previewCanvas.dataset.src = ev.target?.result as string;
+							downloadBtn.style.display = 'block'; 
+						};
+						img.src = ev.target?.result as string;
 					};
 					reader.readAsDataURL(file);
 				});
-				downloadBtn.addEventListener('click', () => {
+				downloadBtn?.addEventListener('click', () => {
 					const canvas = document.createElement('canvas');
 					canvas.width = 1080;
 					canvas.height = 1920;
 					const ctx = canvas.getContext('2d');
 					if (!ctx) return;
-					// Draw IG gradient
-					const grad = ctx.createLinearGradient(0,0,1080,1920);
-					grad.addColorStop(0, '#f9ce34');
-					grad.addColorStop(0.5, '#ee2a7b');
-					grad.addColorStop(1, '#6228d7');
-					ctx.fillStyle = grad;
-					ctx.fillRect(0,0,1080,1920);
-					// Draw image centered and fit
 					const img = new window.Image();
+					img.crossOrigin = 'anonymous';
 					img.onload = () => {
-						const ratio = Math.min(1080/img.width, 1920/img.height);
-						const w = img.width * ratio;
-						const h = img.height * ratio;
-						const x = (1080 - w) / 2;
-						const y = (1920 - h) / 2;
-						ctx.drawImage(img, x, y, w, h);
+						drawImageWithGradient(canvas, img);
 						const url = canvas.toDataURL('image/jpeg');
 						const a = document.createElement('a');
 						a.href = url;
 						a.download = 'ig-story.jpg';
 						a.click();
 					};
-					img.src = preview.src;
+					img.src = previewCanvas?.dataset.src || '';
 				});
-			}
 		</script>
 	</body>
 </html>
